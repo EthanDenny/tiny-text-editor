@@ -7,47 +7,13 @@ try:
 except Exception:
     pass
 
+
 TAB_SIZE = 4
 
 cursor_x = 1
 cursor_y = 1
 
 term = Terminal()
-
-def move_internal_cursor(x=0, y=0):
-    global cursor_x
-    global cursor_y
-    cursor_x += x
-    cursor_y += y
-
-def move_terminal_cursor(x=0, y=0):
-    if x < 0: echo(term.move_left(-x))
-    if x > 0: echo(term.move_right(x))
-    if y < 0: echo(term.move_up(-y))
-    if y > 0: echo(term.move_down(y))
-
-def move_cursor(x=0, y=0):
-    move_internal_cursor(x, y)
-    move_terminal_cursor(x, y)
-
-def set_internal_cursor(x=None, y=None):
-    global cursor_x
-    global cursor_y
-    if x != None: cursor_x = x
-    if y != None: cursor_y = y
-
-def set_terminal_cursor(x=None, y=None):
-    if x != None: echo(term.move_x(x))
-    if y != None: echo(term.move_y(y))
-
-def set_cursor(x=None, y=None):
-    set_internal_cursor(x, y)
-    set_terminal_cursor(x, y)
-
-def echo(buffer):
-    print(term.plum1(buffer), end='', flush=True)
-
-term.number_of_colors = 1 << 24
 
 ignore = { 'KEY_BEGIN', 'KEY_BTAB', 'KEY_C1', 'KEY_C3', 'KEY_CANCEL',
            'KEY_CATAB', 'KEY_CENTER', 'KEY_CLEAR', 'KEY_CLOSE', 'KEY_COMMAND', 'KEY_COPY',
@@ -72,6 +38,47 @@ ignore = { 'KEY_BEGIN', 'KEY_BTAB', 'KEY_C1', 'KEY_C3', 'KEY_CANCEL',
            'KEY_SRESET', 'KEY_SRIGHT', 'KEY_SRSUME', 'KEY_SSAVE', 'KEY_SSUSPEND',
            'KEY_STAB', 'KEY_SUNDO', 'KEY_SUP', 'KEY_SUSPEND', 'KEY_UNDO',
            'KEY_UP', 'KEY_UP_LEFT', 'KEY_UP_RIGHT' }
+
+
+def move_internal_cursor(x=0, y=0):
+    global cursor_x
+    global cursor_y
+    cursor_x += x
+    cursor_y += y
+
+
+def move_terminal_cursor(x=0, y=0):
+    if x < 0: echo(term.move_left(-x))
+    if x > 0: echo(term.move_right(x))
+    if y < 0: echo(term.move_up(-y))
+    if y > 0: echo(term.move_down(y))
+
+
+def move_cursor(x=0, y=0):
+    move_internal_cursor(x, y)
+    move_terminal_cursor(x, y)
+
+
+def set_internal_cursor(x=None, y=None):
+    global cursor_x
+    global cursor_y
+    if x != None: cursor_x = x
+    if y != None: cursor_y = y
+
+
+def set_terminal_cursor(x=None, y=None):
+    if x != None: echo(term.move_x(x))
+    if y != None: echo(term.move_y(y))
+
+
+def set_cursor(x=None, y=None):
+    set_internal_cursor(x, y)
+    set_terminal_cursor(x, y)
+
+
+def echo(buffer):
+    print(term.plum1(buffer), end='', flush=True)
+
 
 def main():
     buffer = ''      
@@ -128,6 +135,7 @@ def main():
                 echo(f'\n\n{cursor_x:2d}')
                 echo(f'\n{term.clear_eol}{buffer}')
             """
+
 
 if __name__ == '__main__':
     try:
