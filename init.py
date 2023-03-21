@@ -10,8 +10,8 @@ except Exception:
 
 TAB_SIZE = 4
 
-cursor_x = 1
-cursor_y = 1
+cursor_x = 0
+cursor_y = 0
 
 term = Terminal()
 
@@ -81,7 +81,7 @@ def echo(buffer):
 
 
 def main():
-    buffer = ''      
+    buffer = ['']
 
     with term.fullscreen(), term.cbreak():
         echo(term.home + term.clear)
@@ -93,40 +93,52 @@ def main():
             inp = term.inkey()
 
             if inp.name == 'KEY_BACKSPACE':
-                if cursor_x > 1:
+                if cursor_x > 0:
                     move_cursor(x=-1)
-                    saved_buffer = buffer[cursor_x:]
-                    buffer = buffer[:cursor_x-1] + buffer[cursor_x:]
+                    saved_buffer = buffer[cursor_y][cursor_x+1:]
+                    buffer[cursor_y] = buffer[cursor_y][:cursor_x] + buffer[cursor_y][cursor_x+1:]
                     echo(term.clear_eol + saved_buffer)
                     move_terminal_cursor(x=-len(saved_buffer))
             elif inp.name == 'KEY_DELETE':
-                saved_buffer = buffer[cursor_x:]
-                buffer = buffer[:cursor_x-1] + buffer[cursor_x:]
+                saved_buffer = buffer[cursor_y][cursor_x+1:]
+                buffer[cursor_y] = buffer[cursor_y][:cursor_x] + buffer[cursor_y][cursor_x+1:]
                 echo(term.clear_eol + saved_buffer)
                 move_terminal_cursor(x=-len(saved_buffer))
+            elif inp.name == 'KEY_UP':
+                if cursor_y > 0:
+                    move_cursor(y=-1)
+                    if cursor_x > len(buffer[cursor_y]):
+                        set_cursor(x=len(buffer[cursor_y]))
+            elif inp.name == 'KEY_DOWN':
+                if cursor_y < len(buffer)-1:
+                    move_cursor(y=1)
+                    if cursor_x > len(buffer[cursor_y]):
+                        set_cursor(x=len(buffer[cursor_y]))
             elif inp.name == 'KEY_LEFT':
-                if cursor_x > 1:
+                if cursor_x > 0:
                     move_cursor(x=-1)
             elif inp.name == 'KEY_RIGHT':
-                if cursor_x <= len(buffer):
+                if cursor_x < len(buffer[cursor_y]):
                     move_cursor(x=1)
             elif inp.name == 'KEY_TAB':
-                with term.location():
-                    out_buffer = ' ' * TAB_SIZE + buffer[cursor_x-1:]
-                    buffer = buffer[:cursor_x-1] + out_buffer
+                out_buffer = ' ' * TAB_SIZE + buffer[cursor_y][cursor_x:]
+                buffer[cursor_y] = buffer[cursor_y][:cursor_x] + out_buffer
+                with term.location(), term.hidden_cursor():
                     echo(out_buffer)
                 move_cursor(x=TAB_SIZE)
             elif inp.name == 'KEY_ENTER':
-                with term.location():
-                    saved_buffer = buffer[cursor_x-1:]
-                    buffer = buffer[:cursor_x-1] + '\n' + buffer[cursor_x-1:]
-                    echo('\n' + saved_buffer)
+                saved_buffer = buffer[cursor_y][cursor_x:]
+                buffer[cursor_y] = buffer[cursor_y][:cursor_x]
+                buffer.insert(cursor_y+1, saved_buffer)
+                with term.location(), term.hidden_cursor():
+                    for y in range(cursor_y+1, len(buffer)):
+                        echo(term.clear_eol + '\n' + buffer[y])
                 move_cursor(y=1)
                 set_cursor(x=0)
             elif not inp.name in ignore:
-                with term.location():
-                    saved_buffer = buffer[cursor_x-1:]
-                    buffer = buffer[:cursor_x-1] + inp + buffer[cursor_x-1:]
+                saved_buffer = buffer[cursor_y][cursor_x:]
+                buffer[cursor_y] = buffer[cursor_y][:cursor_x] + inp + buffer[cursor_y][cursor_x:]
+                with term.location(), term.hidden_cursor():
                     echo(inp + saved_buffer)
                 move_cursor(x=1)
 
