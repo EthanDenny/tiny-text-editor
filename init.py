@@ -79,15 +79,31 @@ def set_cursor(x=None, y=None):
 def echo(buffer):
     print(term.plum1(buffer), end='', flush=True)
 
+buffer = ['']
 
 def main():
-    buffer = ['']
+    global buffer
 
     with term.fullscreen(), term.cbreak():
         echo(term.home + term.clear)
         print(term.bold_deeppink('╔' + '═'*(term.width-2) + '╗'))
         print(term.bold_deeppink('║ welcome to tiny text' + ' '*(term.width-23) + '║'))
         print(term.bold_deeppink('╚' + '═'*(term.width-2) + '╝\n'))
+
+        if len(sys.argv) > 1:
+            with open(sys.argv[1], 'r') as f:
+                buffer = []
+
+                for line in f:
+                    buffer.append(line[:-1])
+
+                with term.location(), term.hidden_cursor():
+                    for i in range(len(buffer) - 1):
+                        echo(buffer[i] + '\n')
+                    echo(buffer[len(buffer)-1])
+                
+                move_cursor(y=len(buffer)-1)
+                set_cursor(x=len(buffer[cursor_y]))
 
         while True:
             inp = term.inkey()
@@ -153,6 +169,17 @@ if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
-        sys.exit()
+        if len(sys.argv) > 1:
+            with open(sys.argv[1], 'w') as f:
+                for i in range(len(buffer) - 1):
+                    f.write(buffer[i] + '\n')
+                
+                if len(buffer[len(buffer)-1]) > 0:
+                    if buffer[len(buffer)-1][-1] == '\n':
+                        f.write(buffer[len(buffer)-1])
+                    else:
+                        f.write(buffer[len(buffer)-1] + '\n')
+                else:
+                    f.write('\n')
     except Exception as ex:
         raise ex
