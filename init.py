@@ -158,12 +158,6 @@ def main():
                     echo(inp + saved_buffer)
                 move_cursor(x=1)
 
-            """
-            with term.location():
-                echo(f'\n\n{cursor_x:2d}')
-                echo(f'\n{term.clear_eol}{buffer}')
-            """
-
 
 if __name__ == '__main__':
     try:
