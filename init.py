@@ -115,6 +115,25 @@ def main():
                     buffer[cursor_y] = buffer[cursor_y][:cursor_x] + buffer[cursor_y][cursor_x+1:]
                     echo(term.clear_eol + saved_buffer)
                     move_terminal_cursor(x=-len(saved_buffer))
+                elif cursor_y > 0:
+                    saved_buffer = buffer.pop(cursor_y)
+                    move_cursor(y=-1)
+                    
+                    old_x = len(buffer[cursor_y])
+                    buffer[cursor_y] += saved_buffer
+                    set_cursor(x=old_x)
+                    echo(saved_buffer)
+                    set_cursor(x=old_x)
+
+                    with term.location(), term.hidden_cursor():
+                        move_terminal_cursor(y=1)
+                        for y in range(cursor_y+1, len(buffer)):
+                            set_terminal_cursor(x=0)
+                            echo(term.clear_eol + buffer[y])
+                            move_terminal_cursor(y=1)
+                        set_terminal_cursor(x=0)
+                        echo(term.clear_eol)
+                    
             elif inp.name == 'KEY_DELETE':
                 saved_buffer = buffer[cursor_y][cursor_x+1:]
                 buffer[cursor_y] = buffer[cursor_y][:cursor_x] + buffer[cursor_y][cursor_x+1:]
