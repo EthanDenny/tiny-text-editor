@@ -1,8 +1,11 @@
 from blessed import Terminal
 import sys
-from colorama import just_fix_windows_console
 
-just_fix_windows_console()
+try:
+    from colorama import just_fix_windows_console
+    just_fix_windows_console()
+except Exception:
+    pass
 
 TAB_SIZE = 4
 
@@ -82,46 +85,43 @@ def main():
         while True:
             inp = term.inkey()
 
-            if inp.name in ignore: continue
-
-            match inp.name:
-                case 'KEY_BACKSPACE':
-                    if cursor_x > 1:
-                        move_cursor(x=-1)
-                        saved_buffer = buffer[cursor_x:]
-                        buffer = buffer[:cursor_x-1] + buffer[cursor_x:]
-                        echo(term.clear_eol + saved_buffer)
-                        move_terminal_cursor(x=-len(saved_buffer))
-                case 'KEY_DELETE':
+            if inp.name == 'KEY_BACKSPACE':
+                if cursor_x > 1:
+                    move_cursor(x=-1)
                     saved_buffer = buffer[cursor_x:]
                     buffer = buffer[:cursor_x-1] + buffer[cursor_x:]
                     echo(term.clear_eol + saved_buffer)
                     move_terminal_cursor(x=-len(saved_buffer))
-                case 'KEY_LEFT':
-                    if cursor_x > 1:
-                        move_cursor(x=-1)
-                case 'KEY_RIGHT':
-                    if cursor_x <= len(buffer):
-                        move_cursor(x=1)
-                case 'KEY_TAB':
-                    with term.location():
-                        out_buffer = ' ' * TAB_SIZE + buffer[cursor_x-1:]
-                        buffer = buffer[:cursor_x-1] + out_buffer
-                        echo(out_buffer)
-                    move_cursor(x=TAB_SIZE)
-                case 'KEY_ENTER':
-                    with term.location():
-                        saved_buffer = buffer[cursor_x-1:]
-                        buffer = buffer[:cursor_x-1] + '\n' + buffer[cursor_x-1:]
-                        echo('\n' + saved_buffer)
-                    move_cursor(y=1)
-                    set_cursor(x=0)
-                case _:
-                    with term.location():
-                        saved_buffer = buffer[cursor_x-1:]
-                        buffer = buffer[:cursor_x-1] + inp + buffer[cursor_x-1:]
-                        echo(inp + saved_buffer)
+            elif inp.name == 'KEY_DELETE':
+                saved_buffer = buffer[cursor_x:]
+                buffer = buffer[:cursor_x-1] + buffer[cursor_x:]
+                echo(term.clear_eol + saved_buffer)
+                move_terminal_cursor(x=-len(saved_buffer))
+            elif inp.name == 'KEY_LEFT':
+                if cursor_x > 1:
+                    move_cursor(x=-1)
+            elif inp.name == 'KEY_RIGHT':
+                if cursor_x <= len(buffer):
                     move_cursor(x=1)
+            elif inp.name == 'KEY_TAB':
+                with term.location():
+                    out_buffer = ' ' * TAB_SIZE + buffer[cursor_x-1:]
+                    buffer = buffer[:cursor_x-1] + out_buffer
+                    echo(out_buffer)
+                move_cursor(x=TAB_SIZE)
+            elif inp.name == 'KEY_ENTER':
+                with term.location():
+                    saved_buffer = buffer[cursor_x-1:]
+                    buffer = buffer[:cursor_x-1] + '\n' + buffer[cursor_x-1:]
+                    echo('\n' + saved_buffer)
+                move_cursor(y=1)
+                set_cursor(x=0)
+            elif not inp.name in ignore:
+                with term.location():
+                    saved_buffer = buffer[cursor_x-1:]
+                    buffer = buffer[:cursor_x-1] + inp + buffer[cursor_x-1:]
+                    echo(inp + saved_buffer)
+                move_cursor(x=1)
 
             """
             with term.location():
