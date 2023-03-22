@@ -8,8 +8,13 @@ try:
 except Exception:
     pass
 
+# Create an alias to make certain things more clear
+def newline():
+    print()
+
 
 TAB_SIZE = 4
+LINE_NUM_OFFSET = 6
 
 buffer = ['']
 
@@ -74,7 +79,7 @@ def set_internal_cursor(x=None, y=None):
 
 
 def set_terminal_cursor(x=None, y=None):
-    if x != None: echo(term.move_x(x))
+    if x != None: echo(term.move_x(x + LINE_NUM_OFFSET))
     if y != None: echo(term.move_y(y))
 
 
@@ -115,15 +120,8 @@ def delete_next_newline():
     old_x = get_end(cursor.y)
     buffer[cursor.y] = buffer[cursor.y][:-1] + saved_buffer
     set_cursor(x=old_x)
-    echo(saved_buffer[:-1])
-    set_cursor(x=old_x)
 
-    with term.location(), term.hidden_cursor():
-        move_terminal_cursor(y=1)
-        set_terminal_cursor(x=0)
-        for y in range(cursor.y+1, len(buffer)):
-            echo(term.clear_eol + buffer[y])
-        echo(term.clear_eol)
+    reprint_lines_after_cursor()
 
 
 def save():
@@ -141,14 +139,49 @@ def go_ideal_x():
         go_end()
 
 
+def print_line_num(y):
+    echo(term.clear_eol)
+    if y < len(buffer):
+        print(term.deeppink2(str(y+1).rjust(3) + ' │ '), end='', flush=True)
+    else:
+        print(term.deeppink2('    │ '), end='', flush=True)
+
+def print_line(y):
+    print_line_num(y)
+    echo(buffer[y])
+
+
+def line_before_cursor():
+    return buffer[cursor.y][:cursor.x]
+
+
+def line_after_cursor():
+    return buffer[cursor.y][cursor.x:]
+
+
+def reprint_lines_after_cursor():
+    with term.location(), term.hidden_cursor():
+        echo(term.move_x(0))
+
+        for y in range(cursor.y, len(buffer)):
+            print_line(y)
+        
+        newline()
+        
+        for y in range(len(buffer), term.height - 6):
+            print_line_num(y)
+            newline()
+
+
 def main():
     global buffer
 
     with term.fullscreen(), term.cbreak():
         echo(term.home + term.clear)
         print(term.bold_deeppink('╔' + '═'*(term.width-2) + '╗'))
-        print(term.bold_deeppink('║ welcome to tiny text' + ' '*(term.width-23) + '║'))
-        print(term.bold_deeppink('╚' + '═'*(term.width-2) + '╝\n'))
+        print(term.bold_deeppink('║ tiny text' + ' '*(term.width-12) + '║'))
+        print(term.bold_deeppink('╚' + '═══╤' + '═'*(term.width-LINE_NUM_OFFSET) + '╝'))
+        print(term.deeppink2('    │'))
 
         if filepath and os.path.isfile(filepath):
             with open(filepath, 'r') as f:
@@ -159,12 +192,9 @@ def main():
                 if buffer[-1][-1] == '\n':
                     buffer.append('')
 
-                with term.location(), term.hidden_cursor():
-                    for i in range(len(buffer)):
-                        echo(buffer[i])
-                
-                move_cursor(y=len(buffer)-1)
-                go_end()
+        reprint_lines_after_cursor()
+        move_cursor(y=len(buffer)-1)
+        go_end()
 
         while True:
             inp = term.inkey()
@@ -176,13 +206,12 @@ def main():
                 elif cursor.y > 0:
                     move_cursor(y=-1)
                     delete_next_newline()
-                    
+                    cursor.ideal_x = cursor.x
             elif inp.name == 'KEY_DELETE':
                 if cursor.x < get_end(cursor.y):
                     delete_next_char()
-                else:
+                elif cursor.y < len(buffer)-1:
                     delete_next_newline()
-                
             elif inp.name == 'KEY_UP':
                 if cursor.y > 0:
                     move_cursor(y=-1)
@@ -204,18 +233,18 @@ def main():
                     move_cursor(y=1)
                     go_home()
             elif inp.name == 'KEY_TAB':
-                out_buffer = ' ' * TAB_SIZE + buffer[cursor.y][cursor.x:]
-                buffer[cursor.y] = buffer[cursor.y][:cursor.x] + out_buffer
+                out_buffer = ' ' * TAB_SIZE + line_after_cursor()
+                buffer[cursor.y] = line_after_cursor() + out_buffer
                 with term.location(), term.hidden_cursor():
                     echo(out_buffer)
                 move_cursor(x=TAB_SIZE)
             elif inp.name == 'KEY_ENTER':
-                saved_buffer = buffer[cursor.y][cursor.x:]
-                buffer[cursor.y] = buffer[cursor.y][:cursor.x] + '\n'
+                saved_buffer = line_after_cursor()
+                buffer[cursor.y] = line_before_cursor() + '\n'
                 buffer.insert(cursor.y+1, saved_buffer)
-                with term.location(), term.hidden_cursor():
-                    for y in range(cursor.y+1, len(buffer)):
-                        echo(term.clear_eol + '\n' + buffer[y])
+
+                reprint_lines_after_cursor()
+                
                 move_cursor(y=1)
                 go_home()
             elif inp.name == 'KEY_HOME':
@@ -225,8 +254,8 @@ def main():
                 go_end()
                 cursor.ideal_x = cursor.x
             elif not inp.name in ignore:
-                saved_buffer = buffer[cursor.y][cursor.x:]
-                buffer[cursor.y] = buffer[cursor.y][:cursor.x] + inp + buffer[cursor.y][cursor.x:]
+                saved_buffer = line_after_cursor()
+                buffer[cursor.y] = line_before_cursor() + inp + line_after_cursor()
                 with term.location(), term.hidden_cursor():
                     echo(inp + saved_buffer)
                 move_cursor(x=1)
