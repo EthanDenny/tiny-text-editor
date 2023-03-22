@@ -94,7 +94,33 @@ def go_end():
 def echo(buffer):
     print(term.plum1(buffer), end='', flush=True)
 
+
+def delete_next_char():
+    saved_buffer = buffer[cursor_y][cursor_x+1:]
+    buffer[cursor_y] = buffer[cursor_y][:cursor_x] + buffer[cursor_y][cursor_x+1:]
+    with term.location(), term.hidden_cursor():
+        echo(term.clear_eol + saved_buffer[:-1])
+
+
+def delete_next_newline():
+    saved_buffer = buffer.pop(cursor_y + 1)
+
+    old_x = get_end(cursor_y)
+    buffer[cursor_y] = buffer[cursor_y][:-1] + saved_buffer
+    set_cursor(x=old_x)
+    echo(saved_buffer[:-1])
+    set_cursor(x=old_x)
+
+    with term.location(), term.hidden_cursor():
+        move_terminal_cursor(y=1)
+        set_terminal_cursor(x=0)
+        for y in range(cursor_y+1, len(buffer)):
+            echo(term.clear_eol + buffer[y])
+        echo(term.clear_eol)
+
+
 buffer = ['']
+
 
 def main():
     global buffer
@@ -127,34 +153,17 @@ def main():
             if inp.name == 'KEY_BACKSPACE':
                 if cursor_x > 0:
                     move_cursor(x=-1)
-                    saved_buffer = buffer[cursor_y][cursor_x+1:]
-                    buffer[cursor_y] = buffer[cursor_y][:cursor_x] + buffer[cursor_y][cursor_x+1:]
-                    echo(term.clear_eol + saved_buffer)
-                    move_terminal_cursor(x=-len(saved_buffer))
+                    delete_next_char()
                 elif cursor_y > 0:
-                    saved_buffer = buffer.pop(cursor_y)
                     move_cursor(y=-1)
-                    
-                    old_x = len(buffer[cursor_y])
-                    buffer[cursor_y] += saved_buffer
-                    set_cursor(x=old_x)
-                    echo(saved_buffer)
-                    set_cursor(x=old_x)
-
-                    with term.location(), term.hidden_cursor():
-                        move_terminal_cursor(y=1)
-                        for y in range(cursor_y+1, len(buffer)):
-                            set_terminal_cursor(x=0)
-                            echo(term.clear_eol + buffer[y])
-                            move_terminal_cursor(y=1)
-                        set_terminal_cursor(x=0)
-                        echo(term.clear_eol)
+                    delete_next_newline()
                     
             elif inp.name == 'KEY_DELETE':
-                saved_buffer = buffer[cursor_y][cursor_x+1:]
-                buffer[cursor_y] = buffer[cursor_y][:cursor_x] + buffer[cursor_y][cursor_x+1:]
-                echo(term.clear_eol + saved_buffer)
-                move_terminal_cursor(x=-len(saved_buffer))
+                if cursor_x < get_end(cursor_y):
+                    delete_next_char()
+                else:
+                    delete_next_newline()
+                
             elif inp.name == 'KEY_UP':
                 if cursor_y > 0:
                     move_cursor(y=-1)
