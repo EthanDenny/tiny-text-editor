@@ -1,5 +1,6 @@
 from blessed import Terminal
 import sys
+import os
 
 try:
     from colorama import just_fix_windows_console
@@ -10,8 +11,12 @@ except Exception:
 
 TAB_SIZE = 4
 
+buffer = ['']
+
 cursor_x = 0
 cursor_y = 0
+
+filepath = None
 
 term = Terminal()
 
@@ -119,7 +124,12 @@ def delete_next_newline():
         echo(term.clear_eol)
 
 
-buffer = ['']
+def save():
+    if not filepath: return
+
+    with open(filepath, 'w') as f:
+        for i in range(len(buffer)):
+            f.write(buffer[i])
 
 
 def main():
@@ -131,8 +141,8 @@ def main():
         print(term.bold_deeppink('║ welcome to tiny text' + ' '*(term.width-23) + '║'))
         print(term.bold_deeppink('╚' + '═'*(term.width-2) + '╝\n'))
 
-        if len(sys.argv) > 1:
-            with open(sys.argv[1], 'r') as f:
+        if filepath and os.path.isfile(filepath):
+            with open(filepath, 'r') as f:
                 buffer = []
 
                 for line in f:
@@ -189,7 +199,7 @@ def main():
             elif inp.name == 'KEY_ENTER':
                 saved_buffer = buffer[cursor_y][cursor_x:]
                 buffer[cursor_y] = buffer[cursor_y][:cursor_x] + '\n'
-                buffer.insert(cursor_y+1, saved_buffer + '\n')
+                buffer.insert(cursor_y+1, saved_buffer)
                 with term.location(), term.hidden_cursor():
                     for y in range(cursor_y+1, len(buffer)):
                         echo(term.clear_eol + '\n' + buffer[y])
@@ -208,12 +218,12 @@ def main():
 
 
 if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        filepath = sys.argv[1]
+
     try:
         main()
     except KeyboardInterrupt:
-        if len(sys.argv) > 1:
-            with open(sys.argv[1], 'w') as f:
-                for i in range(len(buffer)):
-                    f.write(buffer[i])
+        save()
     except Exception as ex:
         raise ex
