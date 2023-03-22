@@ -170,6 +170,10 @@ def main():
                         echo(term.clear_eol + '\n' + buffer[y])
                 move_cursor(y=1)
                 set_cursor(x=0)
+            elif inp.name == 'KEY_HOME':
+                set_cursor(x=0)
+            elif inp.name == 'KEY_END':
+                set_cursor(x=len(buffer[cursor_y]))
             elif not inp.name in ignore:
                 saved_buffer = buffer[cursor_y][cursor_x:]
                 buffer[cursor_y] = buffer[cursor_y][:cursor_x] + inp + buffer[cursor_y][cursor_x:]
