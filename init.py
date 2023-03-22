@@ -80,8 +80,15 @@ def go_home():
     set_cursor(x=0)
 
 
+def get_end(line):
+    if len(buffer[line]) > 0 and buffer[line][-1] == '\n':
+        return len(buffer[line]) - 1
+    else:
+        return len(buffer[line])
+
+
 def go_end():
-    set_cursor(x=len(buffer[cursor_y]))
+    set_cursor(x=get_end(cursor_y))
 
 
 def echo(buffer):
@@ -103,12 +110,13 @@ def main():
                 buffer = []
 
                 for line in f:
-                    buffer.append(line[:-1])
+                    buffer.append(line)
+                if buffer[-1][-1] == '\n':
+                    buffer.append('')
 
                 with term.location(), term.hidden_cursor():
-                    for i in range(len(buffer) - 1):
-                        echo(buffer[i] + '\n')
-                    echo(buffer[len(buffer)-1])
+                    for i in range(len(buffer)):
+                        echo(buffer[i])
                 
                 move_cursor(y=len(buffer)-1)
                 go_end()
@@ -150,18 +158,18 @@ def main():
             elif inp.name == 'KEY_UP':
                 if cursor_y > 0:
                     move_cursor(y=-1)
-                    if cursor_x > len(buffer[cursor_y]):
+                    if cursor_x > get_end(cursor_y):
                         go_end()
             elif inp.name == 'KEY_DOWN':
                 if cursor_y < len(buffer)-1:
                     move_cursor(y=1)
-                    if cursor_x > len(buffer[cursor_y]):
+                    if cursor_x > get_end(cursor_y):
                         go_end()
             elif inp.name == 'KEY_LEFT':
                 if cursor_x > 0:
                     move_cursor(x=-1)
             elif inp.name == 'KEY_RIGHT':
-                if cursor_x < len(buffer[cursor_y]):
+                if cursor_x < get_end(cursor_y):
                     move_cursor(x=1)
             elif inp.name == 'KEY_TAB':
                 out_buffer = ' ' * TAB_SIZE + buffer[cursor_y][cursor_x:]
@@ -171,8 +179,8 @@ def main():
                 move_cursor(x=TAB_SIZE)
             elif inp.name == 'KEY_ENTER':
                 saved_buffer = buffer[cursor_y][cursor_x:]
-                buffer[cursor_y] = buffer[cursor_y][:cursor_x]
-                buffer.insert(cursor_y+1, saved_buffer)
+                buffer[cursor_y] = buffer[cursor_y][:cursor_x] + '\n'
+                buffer.insert(cursor_y+1, saved_buffer + '\n')
                 with term.location(), term.hidden_cursor():
                     for y in range(cursor_y+1, len(buffer)):
                         echo(term.clear_eol + '\n' + buffer[y])
@@ -196,15 +204,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         if len(sys.argv) > 1:
             with open(sys.argv[1], 'w') as f:
-                for i in range(len(buffer) - 1):
-                    f.write(buffer[i] + '\n')
-                
-                if len(buffer[len(buffer)-1]) > 0:
-                    if buffer[len(buffer)-1][-1] == '\n':
-                        f.write(buffer[len(buffer)-1])
-                    else:
-                        f.write(buffer[len(buffer)-1] + '\n')
-                else:
-                    f.write('\n')
+                for i in range(len(buffer)):
+                    f.write(buffer[i])
     except Exception as ex:
         raise ex
