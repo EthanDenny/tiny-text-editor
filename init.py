@@ -76,6 +76,14 @@ def set_cursor(x=None, y=None):
     set_terminal_cursor(x, y)
 
 
+def go_home():
+    set_cursor(x=5)
+
+
+def go_end():
+    set_cursor(x=len(buffer[cursor_y])+5)
+
+
 def echo(buffer):
     print(term.plum1(buffer), end='', flush=True)
 
@@ -103,7 +111,7 @@ def main():
                     echo(buffer[len(buffer)-1])
                 
                 move_cursor(y=len(buffer)-1)
-                set_cursor(x=len(buffer[cursor_y]))
+                go_end()
 
         while True:
             inp = term.inkey()
@@ -143,12 +151,12 @@ def main():
                 if cursor_y > 0:
                     move_cursor(y=-1)
                     if cursor_x > len(buffer[cursor_y]):
-                        set_cursor(x=len(buffer[cursor_y]))
+                        go_end()
             elif inp.name == 'KEY_DOWN':
                 if cursor_y < len(buffer)-1:
                     move_cursor(y=1)
                     if cursor_x > len(buffer[cursor_y]):
-                        set_cursor(x=len(buffer[cursor_y]))
+                        go_end()
             elif inp.name == 'KEY_LEFT':
                 if cursor_x > 0:
                     move_cursor(x=-1)
@@ -169,11 +177,11 @@ def main():
                     for y in range(cursor_y+1, len(buffer)):
                         echo(term.clear_eol + '\n' + buffer[y])
                 move_cursor(y=1)
-                set_cursor(x=0)
+                go_home()
             elif inp.name == 'KEY_HOME':
-                set_cursor(x=0)
+                go_home()
             elif inp.name == 'KEY_END':
-                set_cursor(x=len(buffer[cursor_y]))
+                go_end()
             elif not inp.name in ignore:
                 saved_buffer = buffer[cursor_y][cursor_x:]
                 buffer[cursor_y] = buffer[cursor_y][:cursor_x] + inp + buffer[cursor_y][cursor_x:]
