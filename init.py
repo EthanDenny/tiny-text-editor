@@ -103,6 +103,14 @@ def go_end():
     set_cursor(x=get_end(cursor.y))
 
 
+def get_bottom():
+    return len(buffer)-1
+
+
+def go_bottom():
+    move_cursor(y=get_bottom())
+
+
 def echo(buffer):
     print(term.plum1(buffer), end='', flush=True)
 
@@ -121,15 +129,27 @@ def delete_next_newline():
     buffer[cursor.y] = buffer[cursor.y][:-1] + saved_buffer
     set_cursor(x=old_x)
 
-    reprint_lines_after_cursor()
+    print_lines_after_cursor()
+
+
+def load():
+    global buffer
+
+    if filepath and os.path.isfile(filepath):
+        with open(filepath, 'r') as f:
+            buffer = []
+
+            for line in f:
+                buffer.append(line)
+            if buffer[-1][-1] == '\n':
+                buffer.append('')
 
 
 def save():
-    if not filepath: return
-
-    with open(filepath, 'w') as f:
-        for i in range(len(buffer)):
-            f.write(buffer[i])
+    if filepath:
+        with open(filepath, 'w') as f:
+            for i in range(len(buffer)):
+                f.write(buffer[i])
 
 
 def go_ideal_x():
@@ -159,7 +179,7 @@ def line_after_cursor():
     return buffer[cursor.y][cursor.x:]
 
 
-def reprint_lines_after_cursor():
+def print_lines_after_cursor():
     with term.location(), term.hidden_cursor():
         echo(term.move_x(0))
 
@@ -173,27 +193,33 @@ def reprint_lines_after_cursor():
             newline()
 
 
+def clear():
+    echo(term.home + term.clear)
+
+
+def print_header():
+    print(term.bold_deeppink('╔' + '═'*(term.width-2) + '╗'))
+
+    if filepath:
+        print(term.bold_deeppink(f'║ editing: {filepath}' + ' '*(term.width-len(filepath)-12) + '║'))
+    else:
+        print(term.bold_deeppink(f'║ tiny text' + ' '*(term.width-12) + '║'))
+
+    print(term.bold_deeppink('╚' + '═══╤' + '═'*(term.width-LINE_NUM_OFFSET) + '╝'))
+    print(term.deeppink2('    │'))
+
+
 def main():
     global buffer
 
+    load()
+
     with term.fullscreen(), term.cbreak():
-        echo(term.home + term.clear)
-        print(term.bold_deeppink('╔' + '═'*(term.width-2) + '╗'))
-        print(term.bold_deeppink('║ tiny text' + ' '*(term.width-12) + '║'))
-        print(term.bold_deeppink('╚' + '═══╤' + '═'*(term.width-LINE_NUM_OFFSET) + '╝'))
-        print(term.deeppink2('    │'))
+        clear()
+        print_header()
+        print_lines_after_cursor()
 
-        if filepath and os.path.isfile(filepath):
-            with open(filepath, 'r') as f:
-                buffer = []
-
-                for line in f:
-                    buffer.append(line)
-                if buffer[-1][-1] == '\n':
-                    buffer.append('')
-
-        reprint_lines_after_cursor()
-        move_cursor(y=len(buffer)-1)
+        go_bottom()
         go_end()
 
         while True:
@@ -210,14 +236,14 @@ def main():
             elif inp.name == 'KEY_DELETE':
                 if cursor.x < get_end(cursor.y):
                     delete_next_char()
-                elif cursor.y < len(buffer)-1:
+                elif cursor.y < get_bottom():
                     delete_next_newline()
             elif inp.name == 'KEY_UP':
                 if cursor.y > 0:
                     move_cursor(y=-1)
                     go_ideal_x()
             elif inp.name == 'KEY_DOWN':
-                if cursor.y < len(buffer)-1:
+                if cursor.y < get_bottom():
                     move_cursor(y=1)
                     go_ideal_x()
             elif inp.name == 'KEY_LEFT':
@@ -229,7 +255,7 @@ def main():
             elif inp.name == 'KEY_RIGHT':
                 if cursor.x < get_end(cursor.y):
                     move_cursor(x=1)
-                elif cursor.y < len(buffer)-1:
+                elif cursor.y < get_bottom():
                     move_cursor(y=1)
                     go_home()
             elif inp.name == 'KEY_TAB':
@@ -243,7 +269,7 @@ def main():
                 buffer[cursor.y] = line_before_cursor() + '\n'
                 buffer.insert(cursor.y+1, saved_buffer)
 
-                reprint_lines_after_cursor()
+                print_lines_after_cursor()
                 
                 move_cursor(y=1)
                 go_home()
