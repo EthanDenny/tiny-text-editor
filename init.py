@@ -77,11 +77,11 @@ def set_cursor(x=None, y=None):
 
 
 def go_home():
-    set_cursor(x=5)
+    set_cursor(x=0)
 
 
 def go_end():
-    set_cursor(x=len(buffer[cursor_y])+5)
+    set_cursor(x=len(buffer[cursor_y]))
 
 
 def echo(buffer):
