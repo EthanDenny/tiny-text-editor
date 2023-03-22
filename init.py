@@ -16,6 +16,8 @@ buffer = ['']
 class Cursor:
     x = 0
     y = 0
+    ideal_x = 0 # Cursor will move to ideal_x if possible when y changes
+
 cursor = Cursor()
 
 filepath = None
@@ -50,6 +52,8 @@ ignore = { 'KEY_BEGIN', 'KEY_BTAB', 'KEY_C1', 'KEY_C3', 'KEY_CANCEL',
 def move_internal_cursor(x=0, y=0):
     cursor.x += x
     cursor.y += y
+
+    if x != 0: cursor.ideal_x = cursor.x
 
 
 def move_terminal_cursor(x=0, y=0):
@@ -130,6 +134,13 @@ def save():
             f.write(buffer[i])
 
 
+def go_ideal_x():
+    if cursor.ideal_x <= get_end(cursor.y):
+        set_cursor(x=cursor.ideal_x)
+    else:
+        go_end()
+
+
 def main():
     global buffer
 
@@ -175,19 +186,23 @@ def main():
             elif inp.name == 'KEY_UP':
                 if cursor.y > 0:
                     move_cursor(y=-1)
-                    if cursor.x > get_end(cursor.y):
-                        go_end()
+                    go_ideal_x()
             elif inp.name == 'KEY_DOWN':
                 if cursor.y < len(buffer)-1:
                     move_cursor(y=1)
-                    if cursor.x > get_end(cursor.y):
-                        go_end()
+                    go_ideal_x()
             elif inp.name == 'KEY_LEFT':
                 if cursor.x > 0:
                     move_cursor(x=-1)
+                elif cursor.y > 0:
+                    move_cursor(y=-1)
+                    go_end()
             elif inp.name == 'KEY_RIGHT':
                 if cursor.x < get_end(cursor.y):
                     move_cursor(x=1)
+                elif cursor.y < len(buffer)-1:
+                    move_cursor(y=1)
+                    go_home()
             elif inp.name == 'KEY_TAB':
                 out_buffer = ' ' * TAB_SIZE + buffer[cursor.y][cursor.x:]
                 buffer[cursor.y] = buffer[cursor.y][:cursor.x] + out_buffer
@@ -205,8 +220,10 @@ def main():
                 go_home()
             elif inp.name == 'KEY_HOME':
                 go_home()
+                cursor.ideal_x = cursor.x
             elif inp.name == 'KEY_END':
                 go_end()
+                cursor.ideal_x = cursor.x
             elif not inp.name in ignore:
                 saved_buffer = buffer[cursor.y][cursor.x:]
                 buffer[cursor.y] = buffer[cursor.y][:cursor.x] + inp + buffer[cursor.y][cursor.x:]
