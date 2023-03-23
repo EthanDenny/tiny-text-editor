@@ -118,7 +118,7 @@ def echo(buffer):
 def delete_next_char():
     saved_buffer = buffer[cursor.y][cursor.x+1:]
     buffer[cursor.y] = buffer[cursor.y][:cursor.x] + buffer[cursor.y][cursor.x+1:]
-    with term.location(), term.hidden_cursor():
+    with term.location():
         echo(term.clear_eol + saved_buffer[:-1])
 
 
@@ -225,66 +225,69 @@ def main():
         while True:
             inp = term.inkey()
 
-            if inp.name == 'KEY_BACKSPACE':
-                if cursor.x > 0:
-                    move_cursor(x=-1)
-                    delete_next_char()
-                elif cursor.y > 0:
-                    move_cursor(y=-1)
-                    delete_next_newline()
-                    cursor.ideal_x = cursor.x
-            elif inp.name == 'KEY_DELETE':
-                if cursor.x < get_end(cursor.y):
-                    delete_next_char()
-                elif cursor.y < get_bottom():
-                    delete_next_newline()
-            elif inp.name == 'KEY_UP':
-                if cursor.y > 0:
-                    move_cursor(y=-1)
-                    go_ideal_x()
-            elif inp.name == 'KEY_DOWN':
-                if cursor.y < get_bottom():
-                    move_cursor(y=1)
-                    go_ideal_x()
-            elif inp.name == 'KEY_LEFT':
-                if cursor.x > 0:
-                    move_cursor(x=-1)
-                elif cursor.y > 0:
-                    move_cursor(y=-1)
-                    go_end()
-            elif inp.name == 'KEY_RIGHT':
-                if cursor.x < get_end(cursor.y):
-                    move_cursor(x=1)
-                elif cursor.y < get_bottom():
+            with term.hidden_cursor():
+                if inp.name == 'KEY_BACKSPACE':
+                    if cursor.x > 0:
+                        move_cursor(x=-1)
+                        delete_next_char()
+                    elif cursor.y > 0:
+                        move_cursor(y=-1)
+                        delete_next_newline()
+                        cursor.ideal_x = cursor.x
+                elif inp.name == 'KEY_DELETE':
+                    if cursor.x < get_end(cursor.y):
+                        delete_next_char()
+                    elif cursor.y < get_bottom():
+                        delete_next_newline()
+                elif inp.name == 'KEY_UP':
+                    if cursor.y > 0:
+                        move_cursor(y=-1)
+                        go_ideal_x()
+                elif inp.name == 'KEY_DOWN':
+                    if cursor.y < get_bottom():
+                        move_cursor(y=1)
+                        go_ideal_x()
+                elif inp.name == 'KEY_LEFT':
+                    if cursor.x > 0:
+                        move_cursor(x=-1)
+                    elif cursor.y > 0:
+                        move_cursor(y=-1)
+                        go_end()
+                elif inp.name == 'KEY_RIGHT':
+                    if cursor.x < get_end(cursor.y):
+                        move_cursor(x=1)
+                    elif cursor.y < get_bottom():
+                        move_cursor(y=1)
+                        go_home()
+                elif inp.name == 'KEY_TAB':
+                    out_buffer = ' ' * TAB_SIZE + line_after_cursor()
+                    buffer[cursor.y] = line_after_cursor() + out_buffer
+
+                    with term.location():
+                        echo(out_buffer)
+                    move_cursor(x=TAB_SIZE)
+                elif inp.name == 'KEY_ENTER':
+                    saved_buffer = line_after_cursor()
+                    buffer[cursor.y] = line_before_cursor() + '\n'
+                    buffer.insert(cursor.y+1, saved_buffer)
+
+                    print_lines_after_cursor()
+                    
                     move_cursor(y=1)
                     go_home()
-            elif inp.name == 'KEY_TAB':
-                out_buffer = ' ' * TAB_SIZE + line_after_cursor()
-                buffer[cursor.y] = line_after_cursor() + out_buffer
-                with term.location(), term.hidden_cursor():
-                    echo(out_buffer)
-                move_cursor(x=TAB_SIZE)
-            elif inp.name == 'KEY_ENTER':
-                saved_buffer = line_after_cursor()
-                buffer[cursor.y] = line_before_cursor() + '\n'
-                buffer.insert(cursor.y+1, saved_buffer)
+                elif inp.name == 'KEY_HOME':
+                    go_home()
+                    cursor.ideal_x = cursor.x
+                elif inp.name == 'KEY_END':
+                    go_end()
+                    cursor.ideal_x = cursor.x
+                elif not inp.name in ignore:
+                    saved_buffer = line_after_cursor()
+                    buffer[cursor.y] = line_before_cursor() + inp + line_after_cursor()
 
-                print_lines_after_cursor()
-                
-                move_cursor(y=1)
-                go_home()
-            elif inp.name == 'KEY_HOME':
-                go_home()
-                cursor.ideal_x = cursor.x
-            elif inp.name == 'KEY_END':
-                go_end()
-                cursor.ideal_x = cursor.x
-            elif not inp.name in ignore:
-                saved_buffer = line_after_cursor()
-                buffer[cursor.y] = line_before_cursor() + inp + line_after_cursor()
-                with term.location(), term.hidden_cursor():
-                    echo(inp + saved_buffer)
-                move_cursor(x=1)
+                    with term.location():
+                        echo(inp + saved_buffer)
+                    move_cursor(x=1)
 
 
 if __name__ == '__main__':
