@@ -269,6 +269,7 @@ def main():
 
                     with term.location():
                         echo(out_buffer)
+                    
                     move_cursor(x=TAB_SIZE)
                 elif inp.name == 'KEY_ENTER':
                     saved_buffer = line_after_cursor()
@@ -291,6 +292,7 @@ def main():
 
                     with term.location():
                         echo(inp + saved_buffer)
+                    
                     move_cursor(x=1)
 
 
