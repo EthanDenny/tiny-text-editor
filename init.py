@@ -154,6 +154,7 @@ def print_line(y):
         print(term.deeppink2(str(y+1).rjust(3) + ' │ '), end='', flush=True)
         echo(buffer[y])
     else:
+        if y == len(buffer): print('\r')
         print(term.deeppink2('    │\n'), end='', flush=True)
 
 
