@@ -196,14 +196,20 @@ def print_header():
     print(term.deeppink2('    │'))
 
 
+def print_full_screen():
+    print_slice(HEADER_HEIGHT, screen_offset, len(buffer))
+
+
 def move_offset_up():
     global screen_offset
     screen_offset = max(screen_offset - 1, 0)
+    print_full_screen()
 
 
 def move_offset_down():
     global screen_offset
     screen_offset = min(screen_offset + 1, len(buffer) - term.height + 5)
+    print_full_screen()
 
 
 def put_text(text):
@@ -214,6 +220,11 @@ def put_text(text):
         echo(text + saved_buffer)
     
     move_cursor(x=len(text))
+
+
+def update_ideal_x():
+    cursor.ideal_x = cursor.x
+
 
 def main():
     global buffer
@@ -239,7 +250,7 @@ def main():
                     elif cursor.y > 0:
                         move_cursor(y=-1)
                         delete_next_newline()
-                        cursor.ideal_x = cursor.x
+                        update_ideal_x()
                 elif inp.name == 'KEY_DELETE':
                     if cursor.x < get_end(cursor.y + screen_offset):
                         delete_next_char()
@@ -251,14 +262,12 @@ def main():
                         go_ideal_x()
                     else:
                         move_offset_up()
-                        print_slice(HEADER_HEIGHT, screen_offset, len(buffer))
                     go_ideal_x()
                 elif inp.name == 'KEY_DOWN':
                     if cursor.y < get_bottom():
                         move_cursor(y=1)
                     else:
                         move_offset_down()
-                        print_slice(HEADER_HEIGHT, screen_offset, len(buffer))
                     go_ideal_x()
                 elif inp.name == 'KEY_LEFT':
                     if cursor.x > 0:
@@ -285,10 +294,10 @@ def main():
                     go_home()
                 elif inp.name == 'KEY_HOME':
                     go_home()
-                    cursor.ideal_x = cursor.x
+                    update_ideal_x()
                 elif inp.name == 'KEY_END':
                     go_end()
-                    cursor.ideal_x = cursor.x
+                    update_ideal_x()
                 elif not inp.name in ignore:
                     put_text(inp)
 
