@@ -206,6 +206,15 @@ def move_offset_down():
     screen_offset = min(screen_offset + 1, len(buffer) - term.height + 5)
 
 
+def put_text(text):
+    saved_buffer = line_after_cursor()
+    buffer[cursor.y + screen_offset] = line_before_cursor() + text + line_after_cursor()
+
+    with term.location():
+        echo(text + saved_buffer)
+    
+    move_cursor(x=len(text))
+
 def main():
     global buffer
     global screen_offset
@@ -264,13 +273,7 @@ def main():
                         move_cursor(y=1)
                         go_home()
                 elif inp.name == 'KEY_TAB':
-                    out_buffer = ' ' * TAB_SIZE + line_after_cursor()
-                    buffer[cursor.y + screen_offset] = line_before_cursor() + out_buffer
-
-                    with term.location():
-                        echo(out_buffer)
-                    
-                    move_cursor(x=TAB_SIZE)
+                    put_text(' ' * TAB_SIZE)
                 elif inp.name == 'KEY_ENTER':
                     saved_buffer = line_after_cursor()
                     buffer[cursor.y + screen_offset] = line_before_cursor() + '\n'
@@ -287,13 +290,7 @@ def main():
                     go_end()
                     cursor.ideal_x = cursor.x
                 elif not inp.name in ignore:
-                    saved_buffer = line_after_cursor()
-                    buffer[cursor.y + screen_offset] = line_before_cursor() + inp + line_after_cursor()
-
-                    with term.location():
-                        echo(inp + saved_buffer)
-                    
-                    move_cursor(x=1)
+                    put_text(inp)
 
 
 if __name__ == '__main__':
