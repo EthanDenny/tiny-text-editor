@@ -15,6 +15,7 @@ def newline():
 
 TAB_SIZE = 4
 LINE_NUM_OFFSET = 6
+HEADER_HEIGHT = 4
 
 buffer = ['']
 
@@ -52,6 +53,8 @@ ignore = { 'KEY_BEGIN', 'KEY_BTAB', 'KEY_C1', 'KEY_C3', 'KEY_CANCEL',
            'KEY_SRESET', 'KEY_SRIGHT', 'KEY_SRSUME', 'KEY_SSAVE', 'KEY_SSUSPEND',
            'KEY_STAB', 'KEY_SUNDO', 'KEY_SUP', 'KEY_SUSPEND', 'KEY_UNDO',
            'KEY_UP', 'KEY_UP_LEFT', 'KEY_UP_RIGHT' }
+
+screen_offset = 0
 
 
 def move_internal_cursor(x=0, y=0):
@@ -100,15 +103,11 @@ def get_end(line):
 
 
 def go_end():
-    set_cursor(x=get_end(cursor.y))
+    set_cursor(x=get_end(cursor.y + screen_offset))
 
 
 def get_bottom():
-    return len(buffer)-1
-
-
-def go_bottom():
-    move_cursor(y=get_bottom())
+    return term.height - HEADER_HEIGHT - 2
 
 
 def echo(buffer):
@@ -116,17 +115,17 @@ def echo(buffer):
 
 
 def delete_next_char():
-    saved_buffer = buffer[cursor.y][cursor.x+1:]
-    buffer[cursor.y] = buffer[cursor.y][:cursor.x] + buffer[cursor.y][cursor.x+1:]
+    saved_buffer = buffer[cursor.y + screen_offset][cursor.x+1:]
+    buffer[cursor.y + screen_offset] = buffer[cursor.y + screen_offset][:cursor.x] + buffer[cursor.y + screen_offset][cursor.x+1:]
     with term.location():
         echo(term.clear_eol + saved_buffer[:-1])
 
 
 def delete_next_newline():
-    saved_buffer = buffer.pop(cursor.y + 1)
+    saved_buffer = buffer.pop(cursor.y + screen_offset + 1)
 
-    old_x = get_end(cursor.y)
-    buffer[cursor.y] = buffer[cursor.y][:-1] + saved_buffer
+    old_x = get_end(cursor.y + screen_offset)
+    buffer[cursor.y + screen_offset] = buffer[cursor.y + screen_offset][:-1] + saved_buffer
     set_cursor(x=old_x)
 
     print_lines_after_cursor()
@@ -136,7 +135,7 @@ def load():
     global buffer
 
     if filepath and os.path.isfile(filepath):
-        with open(filepath, 'r') as f:
+        with open(filepath, 'r', encoding='utf-8') as f:
             buffer = []
 
             for line in f:
@@ -147,50 +146,48 @@ def load():
 
 def save():
     if filepath:
-        with open(filepath, 'w') as f:
+        with open(filepath, 'w', encoding='utf-8') as f:
             for i in range(len(buffer)):
                 f.write(buffer[i])
 
 
 def go_ideal_x():
-    if cursor.ideal_x <= get_end(cursor.y):
+    if cursor.ideal_x <= get_end(cursor.y + screen_offset):
         set_cursor(x=cursor.ideal_x)
     else:
         go_end()
 
 
-def print_line_num(y):
+def print_line(y):
     echo(term.clear_eol)
     if y < len(buffer):
         print(term.deeppink2(str(y+1).rjust(3) + ' │ '), end='', flush=True)
+        echo(buffer[y])
     else:
-        print(term.deeppink2('    │ '), end='', flush=True)
-
-def print_line(y):
-    print_line_num(y)
-    echo(buffer[y])
+        print(term.deeppink2('    │\n'), end='', flush=True)
 
 
 def line_before_cursor():
-    return buffer[cursor.y][:cursor.x]
+    return buffer[cursor.y + screen_offset][:cursor.x]
 
 
 def line_after_cursor():
-    return buffer[cursor.y][cursor.x:]
+    return buffer[cursor.y + screen_offset][cursor.x:]
+
+
+def print_slice(terminal_line, buffer_line_start, buffer_line_end):
+    num_of_lines = min(buffer_line_end - buffer_line_start, term.height - terminal_line - 1)
+
+    with term.location(), term.hidden_cursor():
+        echo(term.move_x(0))
+        echo(term.move_y(terminal_line))
+
+        for i in range(num_of_lines):
+            print_line(buffer_line_start + i)
 
 
 def print_lines_after_cursor():
-    with term.location(), term.hidden_cursor():
-        echo(term.move_x(0))
-
-        for y in range(cursor.y, len(buffer)):
-            print_line(y)
-        
-        newline()
-        
-        for y in range(len(buffer), term.height - 6):
-            print_line_num(y)
-            newline()
+    print_slice(cursor.y + HEADER_HEIGHT, cursor.y, term.height)
 
 
 def clear():
@@ -209,8 +206,19 @@ def print_header():
     print(term.deeppink2('    │'))
 
 
+def move_offset_up():
+    global screen_offset
+    screen_offset = max(screen_offset - 1, 0)
+
+
+def move_offset_down():
+    global screen_offset
+    screen_offset = min(screen_offset + 1, len(buffer) - term.height + 5)
+
+
 def main():
     global buffer
+    global screen_offset
 
     load()
 
@@ -219,8 +227,7 @@ def main():
         print_header()
         print_lines_after_cursor()
 
-        go_bottom()
-        go_end()
+        set_terminal_cursor(x=0, y=HEADER_HEIGHT)
 
         while True:
             inp = term.inkey()
@@ -235,7 +242,7 @@ def main():
                         delete_next_newline()
                         cursor.ideal_x = cursor.x
                 elif inp.name == 'KEY_DELETE':
-                    if cursor.x < get_end(cursor.y):
+                    if cursor.x < get_end(cursor.y + screen_offset):
                         delete_next_char()
                     elif cursor.y < get_bottom():
                         delete_next_newline()
@@ -243,10 +250,17 @@ def main():
                     if cursor.y > 0:
                         move_cursor(y=-1)
                         go_ideal_x()
+                    else:
+                        move_offset_up()
+                        print_slice(HEADER_HEIGHT, screen_offset, len(buffer))
+                    go_ideal_x()
                 elif inp.name == 'KEY_DOWN':
                     if cursor.y < get_bottom():
                         move_cursor(y=1)
-                        go_ideal_x()
+                    else:
+                        move_offset_down()
+                        print_slice(HEADER_HEIGHT, screen_offset, len(buffer))
+                    go_ideal_x()
                 elif inp.name == 'KEY_LEFT':
                     if cursor.x > 0:
                         move_cursor(x=-1)
@@ -254,22 +268,22 @@ def main():
                         move_cursor(y=-1)
                         go_end()
                 elif inp.name == 'KEY_RIGHT':
-                    if cursor.x < get_end(cursor.y):
+                    if cursor.x < get_end(cursor.y + screen_offset):
                         move_cursor(x=1)
                     elif cursor.y < get_bottom():
                         move_cursor(y=1)
                         go_home()
                 elif inp.name == 'KEY_TAB':
                     out_buffer = ' ' * TAB_SIZE + line_after_cursor()
-                    buffer[cursor.y] = line_after_cursor() + out_buffer
+                    buffer[cursor.y + screen_offset] = line_after_cursor() + out_buffer
 
                     with term.location():
                         echo(out_buffer)
                     move_cursor(x=TAB_SIZE)
                 elif inp.name == 'KEY_ENTER':
                     saved_buffer = line_after_cursor()
-                    buffer[cursor.y] = line_before_cursor() + '\n'
-                    buffer.insert(cursor.y+1, saved_buffer)
+                    buffer[cursor.y + screen_offset] = line_before_cursor() + '\n'
+                    buffer.insert(cursor.y + screen_offset + 1, saved_buffer)
 
                     print_lines_after_cursor()
                     
@@ -283,7 +297,7 @@ def main():
                     cursor.ideal_x = cursor.x
                 elif not inp.name in ignore:
                     saved_buffer = line_after_cursor()
-                    buffer[cursor.y] = line_before_cursor() + inp + line_after_cursor()
+                    buffer[cursor.y + screen_offset] = line_before_cursor() + inp + line_after_cursor()
 
                     with term.location():
                         echo(inp + saved_buffer)
