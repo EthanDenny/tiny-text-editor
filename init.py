@@ -265,7 +265,7 @@ def main():
                         go_home()
                 elif inp.name == 'KEY_TAB':
                     out_buffer = ' ' * TAB_SIZE + line_after_cursor()
-                    buffer[cursor.y + screen_offset] = line_after_cursor() + out_buffer
+                    buffer[cursor.y + screen_offset] = line_before_cursor() + out_buffer
 
                     with term.location():
                         echo(out_buffer)
