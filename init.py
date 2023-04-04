@@ -8,14 +8,12 @@ try:
 except Exception:
     pass
 
-def load_ignores():
-    ignore = set()
-    with open('ignore.txt') as f:
-        for line in f:
-            ignore.add(line)
-    return ignore
 
-ignore = load_ignores()
+ignore = set()
+with open('ignore.txt') as f:
+    for line in f:
+        ignore.add(line)
+
 
 # Create an alias to make certain things more clear
 def newline():
