@@ -287,10 +287,14 @@ def main():
                     buffer[cursor.y + screen_offset] = line_before_cursor() + '\n'
                     buffer.insert(cursor.y + screen_offset + 1, saved_buffer)
 
-                    print_lines_after_cursor()
+                    if cursor.y < get_bottom():
+                        move_cursor(y=1)
+                    else:
+                        move_offset_down()
                     
-                    move_cursor(y=1)
                     go_home()
+
+                    print_full_screen()
                 elif inp.name == 'KEY_HOME':
                     go_home()
                     update_ideal_x()
